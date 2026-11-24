@@ -361,7 +361,7 @@
     return `
       <header class="top">${titleBlock("Role-Play Practice", "角色扮演練習")}</header>
       <div class="scenes">${Object.entries(SCENES).map(([id, s]) => sceneCard(id, s)).join("")}</div>
-      <button class="btn ghost wide" data-action="class-qr">${ICON.qr} Show class QR code <span class="zh">顯示班級 QR code</span></button>`;
+      <button class="btn ghost wide" data-action="class-qr">${ICON.qr} QR code <span class="zh">QR code</span></button>`;
   }
 
   function classQrView() {
