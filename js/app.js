@@ -34,20 +34,41 @@
   const missingBlanks = (scene, choices) => scene.blanks.filter((b) => !(choices[b.key] || "").trim());
 
   function ideaFor(blank, value) {
-    const v = value.trim().toLowerCase();
-    return (blank.ideas || []).find(([en]) => en.toLowerCase() === v);
+    const v = (value || "").trim().toLowerCase();
+    return v ? (blank.ideas || []).find((idea) => idea.en.toLowerCase() === v) : undefined;
   }
 
-  /** Fills {A}-style blanks. mode: "html" (highlighted English), "zh" (highlighted 中文 hint), "speech" (plain). */
+  /** Budget scenes: total of the chosen priced ideas and what is left. Null until every priced blank is chosen. */
+  function budgetFor(scene, choices) {
+    if (!scene.budget) return null;
+    const priced = scene.blanks.filter((b) => b.ideas.some((i) => i.price != null));
+    const picks = priced.map((b) => ideaFor(b, choices[b.key]));
+    const spent = picks.reduce((sum, i) => sum + (i ? i.price : 0), 0);
+    return { spent, left: scene.budget - spent, complete: picks.every(Boolean) };
+  }
+
+  /** The text for one placeholder ({A}, {A.where}, {TOTAL}, {LEFT}) in English or 中文, or "" if not chosen yet. */
+  function placeholderValue(scene, choices, key, field, lang) {
+    if (key === "TOTAL" || key === "LEFT") {
+      const budget = budgetFor(scene, choices);
+      return budget && budget.complete ? String(key === "TOTAL" ? budget.spent : budget.left) : "";
+    }
+    const blank = scene.blanks.find((b) => b.key === key);
+    const value = (choices[key] || "").trim();
+    const idea = ideaFor(blank, value);
+    if (field) return idea ? idea[lang === "zh" ? `${field}Zh` : field] || "" : "";
+    if (!value) return "";
+    return lang === "zh" && idea ? idea.zh : value;
+  }
+
+  /** Fills placeholders. mode: "html" (highlighted English), "zh" (highlighted 中文 hint), "speech" (plain). */
   function fill(scene, template, choices, mode = "html") {
     const source = mode === "speech" ? template : esc(template);
-    return source.replace(/\{([A-Z])\}/g, (_, key) => {
-      const blank = scene.blanks.find((b) => b.key === key);
-      const value = (choices[key] || "").trim();
+    return source.replace(/\{([A-Z]+)(?:\.(\w+))?\}/g, (_, key, field) => {
+      const value = placeholderValue(scene, choices, key, field, mode === "zh" ? "zh" : "en");
       if (mode === "speech") return value || "blank";
-      if (!value) return `<span class="fill empty">(${key}) ____</span>`;
-      const shown = mode === "zh" ? (ideaFor(blank, value) || [value, value])[1] : value;
-      return `<span class="fill">${esc(shown)}</span>`;
+      if (!value) return `<span class="fill empty">(${key.length === 1 ? key : "?"}) ____</span>`;
+      return `<span class="fill">${esc(value)}</span>`;
     });
   }
 
@@ -232,28 +253,48 @@
         <span class="scene-icon">${ICON[scene.icon]}</span>
         <span class="word">${esc(scene.title)}</span>
         <span class="zh">${esc(scene.zh)}</span>
-        <span class="meta">4 roles · about ${TARGET_SECONDS} seconds</span>
+        <span class="meta">4 roles · about ${TARGET_SECONDS} seconds${scene.budget ? ` · $${scene.budget} ${esc(scene.budgetLabel.en.toLowerCase())}` : ""}</span>
       </a>`;
   }
 
-  function chip(blank, en, zh, selected) {
-    const showZh = zh && zh !== en;
-    return `<button class="chip${selected ? " on" : ""}" data-action="pick" data-key="${blank.key}" data-value="${esc(en)}" aria-pressed="${selected}">
-      ${esc(en)}${showZh ? `<span class="zh">${esc(zh)}</span>` : ""}</button>`;
+  function chip(blank, idea, selected) {
+    const showZh = idea.zh && idea.zh !== idea.en;
+    return `<button class="chip${selected ? " on" : ""}" data-action="pick" data-key="${blank.key}" data-value="${esc(idea.en)}" aria-pressed="${selected}">
+      <span class="chip-en">${esc(idea.en)}</span>${showZh ? `<span class="zh">${esc(idea.zh)}</span>` : ""}${idea.price != null ? `<span class="price">$${idea.price}</span>` : ""}</button>`;
   }
 
   function blankPicker(blank) {
     const value = state.choices[blank.key] || "";
-    const idea = value && ideaFor(blank, value);
+    const idea = ideaFor(blank, value);
     const typed = value && !idea ? value : "";
-    const hasIdeas = blank.ideas && blank.ideas.length;
+    const hasIdeas = blank.ideas.length > 0;
+    const input = blank.fixed
+      ? ""
+      : `<input class="other${typed ? " on" : ""}" data-key="${blank.key}" value="${esc(typed)}" maxlength="40"
+          ${blank.number ? 'inputmode="numeric"' : 'autocapitalize="words"'}
+          placeholder="${hasIdeas ? "Or type your own 或自己輸入" : "Type it here 在這裡輸入"}">`;
     return `
       <div class="blank" data-blank="${blank.key}">
         <div class="blank-head"><span class="key">${blank.key}</span><span class="label">${esc(blank.label)}</span><span class="zh">${esc(blank.zh)}</span></div>
-        ${hasIdeas ? `<div class="chips">${blank.ideas.map(([en, zh]) => chip(blank, en, zh, idea && idea[0] === en)).join("")}</div>` : ""}
-        <input class="other${typed ? " on" : ""}" data-key="${blank.key}" value="${esc(typed)}" maxlength="40"
-          ${blank.number ? 'inputmode="numeric"' : 'autocapitalize="words"'}
-          placeholder="${hasIdeas ? "Or type your own 或自己輸入" : "Type it here 在這裡輸入"}">
+        ${hasIdeas ? `<div class="chips">${blank.ideas.map((i) => chip(blank, i, !!idea && idea.en === i.en)).join("")}</div>` : ""}
+        ${input}
+      </div>`;
+  }
+
+  function budgetMeter(scene) {
+    const budget = budgetFor(scene, state.choices);
+    if (!budget) return "";
+    const over = budget.left < 0;
+    const pct = Math.min(100, (budget.spent / scene.budget) * 100);
+    return `
+      <div class="budget${over ? " over" : ""}">
+        <div class="budget-row">
+          <span>${esc(scene.budgetLabel.en)} <span class="zh">${esc(scene.budgetLabel.zh)}</span> <b>$${scene.budget}</b></span>
+          <span>Spent <span class="zh">花了</span> <b>$${budget.spent}</b></span>
+          <span>Left <span class="zh">剩下</span> <b>$${budget.left}</b></span>
+        </div>
+        <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+        ${over ? `<p class="warn">Too much! Choose something cheaper. <span class="zh">超過預算了！</span></p>` : ""}
       </div>`;
   }
 
@@ -353,9 +394,11 @@
     if (ui.editing === null) ui.editing = !complete;
     const words = ui.editing
       ? `<p class="hint">One person chooses, then shares with the group. <span class="zh">一個人選，再分享給組員。</span></p>
+         ${budgetMeter(scene)}
          ${scene.blanks.map(blankPicker).join("")}`
       : `<p class="hint">Your group's words: <span class="zh">你們組的詞：</span></p>
          ${choiceSummary(scene)}
+         ${budgetMeter(scene)}
          <button class="btn ghost" data-action="edit">Change words <span class="zh">修改</span></button>`;
     return `
       <div class="bar">${backButton("home", "Scenes", "場景")}</div>
@@ -411,14 +454,17 @@
     const scene = SCENES[state.sceneId];
     const blank = scene.blanks.find((b) => b.key === key);
     const value = state.choices[key] || "";
-    const idea = value && ideaFor(blank, value);
+    const idea = ideaFor(blank, value);
     const box = app.querySelector(`[data-blank="${key}"]`);
     box.querySelectorAll(".chip").forEach((c) => {
-      const on = !!idea && c.dataset.value === idea[0];
+      const on = !!idea && c.dataset.value === idea.en;
       c.classList.toggle("on", on);
       c.setAttribute("aria-pressed", on);
     });
-    box.querySelector(".other").classList.toggle("on", !!value && !idea);
+    const other = box.querySelector(".other");
+    if (other) other.classList.toggle("on", !!value && !idea);
+    const meter = app.querySelector(".budget");
+    if (meter) meter.outerHTML = budgetMeter(scene);
     app.querySelector(".missing").innerHTML = missingNote(scene);
   }
 
@@ -434,7 +480,8 @@
     },
     pick: (el) => {
       commit({ choices: { ...state.choices, [el.dataset.key]: el.dataset.value } }, { rerender: false });
-      app.querySelector(`.other[data-key="${el.dataset.key}"]`).value = "";
+      const other = app.querySelector(`.other[data-key="${el.dataset.key}"]`);
+      if (other) other.value = "";
       refreshBlank(el.dataset.key);
     },
     share: () => {

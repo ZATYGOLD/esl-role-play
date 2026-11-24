@@ -74,6 +74,18 @@ svg { flex: none; }
   display: inline-flex; flex-direction: column; align-items: flex-start; line-height: 1.15; }
 .chip .zh { font-size: 0.8rem; }
 .chip.on { background: var(--wash); border-color: var(--orange); color: var(--rust); }
+.chip .price { margin-top: 2px; font-size: 0.9rem; color: var(--green); }
+.chip.on .price { color: var(--rust); }
+.budget { background: var(--washGreen); border: 2px solid var(--green); border-radius: 16px; padding: 12px 14px; display: grid; gap: 8px; }
+.budget-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; text-align: center; font-size: 0.95rem; }
+.budget-row > span { display: grid; }
+.budget-row b { color: var(--green); font-size: 1.15rem; }
+.bar-track { height: 10px; border-radius: 999px; background: #fff; overflow: hidden; }
+.bar-fill { height: 100%; background: var(--green); border-radius: 999px; transition: width 0.25s; }
+.budget.over { background: var(--wash); border-color: var(--orange); }
+.budget.over b, .warn { color: var(--rust); }
+.budget.over .bar-fill { background: var(--orange); }
+.warn { font-weight: 700; }
 .other { width: 100%; min-height: 48px; padding: 10px 14px; border-radius: 14px; border: 2px solid var(--line); font: inherit; font-size: 1.05rem; background: #fff; color: var(--ink); }
 .other.on { border-color: var(--orange); background: var(--wash); }
 .summary { display: flex; flex-wrap: wrap; gap: 8px; }
