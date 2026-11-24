@@ -32,8 +32,7 @@ svg { flex: none; }
 /* Shared building blocks */
 .title { display: grid; gap: 2px; }
 .title .zh { font-size: 1.05rem; }
-.lead, .hint, .missing, .tip { font-size: 1.05rem; }
-.tip { text-align: center; color: var(--muted); }
+.missing { font-size: 1.05rem; }
 .panel { background: var(--card); border: 3px solid var(--line); border-radius: var(--radius); padding: 16px; display: grid; gap: 14px; }
 .panel.center { justify-items: center; text-align: center; }
 .step { width: 34px; height: 34px; border-radius: 50%; background: var(--teal); color: #fff; display: inline-grid; place-items: center; font-size: 1.1rem; }
@@ -59,10 +58,9 @@ svg { flex: none; }
 .scene-card { background: var(--card); border: 3px solid var(--line); border-radius: var(--radius); padding: 18px; color: var(--ink); text-decoration: none;
   display: grid; grid-template-columns: 76px minmax(0, 1fr); column-gap: 14px; align-items: center; }
 .scene-card:active { border-color: var(--orange); }
-.scene-icon { grid-row: span 3; width: 76px; height: 76px; color: var(--ink); }
+.scene-icon { grid-row: span 2; width: 76px; height: 76px; color: var(--ink); }
 .scene-icon svg { width: 100%; height: 100%; }
 .scene-card .word { font-weight: 700; font-size: 1.35rem; line-height: 1.15; }
-.scene-card .meta { color: var(--muted); font-size: 0.95rem; }
 
 /* Choosing words */
 .blank { display: grid; gap: 8px; padding-top: 12px; border-top: 2px dashed var(--line); }
@@ -76,16 +74,11 @@ svg { flex: none; }
 .chip.on { background: var(--wash); border-color: var(--orange); color: var(--rust); }
 .chip .price { margin-top: 2px; font-size: 0.9rem; color: var(--green); }
 .chip.on .price { color: var(--rust); }
-.budget { background: var(--washGreen); border: 2px solid var(--green); border-radius: 16px; padding: 12px 14px; display: grid; gap: 8px; }
-.budget-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; text-align: center; font-size: 0.95rem; }
-.budget-row > span { display: grid; }
-.budget-row b { color: var(--green); font-size: 1.15rem; }
-.bar-track { height: 10px; border-radius: 999px; background: #fff; overflow: hidden; }
-.bar-fill { height: 100%; background: var(--green); border-radius: 999px; transition: width 0.25s; }
-.budget.over { background: var(--wash); border-color: var(--orange); }
-.budget.over b, .warn { color: var(--rust); }
-.budget.over .bar-fill { background: var(--orange); }
-.warn { font-weight: 700; }
+.budget { background: var(--washGreen); border: 2px solid var(--green); border-radius: 16px; padding: 10px 14px; display: grid; gap: 4px; }
+.budget-title { font-weight: 700; color: var(--green); }
+.card-row { display: flex; justify-content: space-between; gap: 8px; }
+.card-row b { color: var(--green); font-size: 1.1rem; }
+.card-row.over b { color: var(--rust); }
 .other { width: 100%; min-height: 48px; padding: 10px 14px; border-radius: 14px; border: 2px solid var(--line); font: inherit; font-size: 1.05rem; background: #fff; color: var(--ink); }
 .other.on { border-color: var(--orange); background: var(--wash); }
 .summary { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -96,7 +89,6 @@ svg { flex: none; }
 .roles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .role { background: var(--washGreen); border: 3px solid var(--green); border-radius: 18px; padding: 14px 10px; display: grid; justify-items: center; gap: 2px; text-align: center; }
 .role-name { font-weight: 700; font-size: 1.15rem; }
-.role .meta { color: var(--green); font-size: 0.9rem; font-weight: 700; }
 
 /* Lines */
 .tabs { display: grid; grid-template-columns: 1fr 1fr; background: var(--card); border: 2px solid var(--line); border-radius: 999px; padding: 4px; }
@@ -106,7 +98,6 @@ svg { flex: none; }
 
 .line-card { display: grid; gap: 6px; }
 .cue { color: var(--muted); font-size: 1rem; padding-inline: 6px; }
-.cue-label { display: block; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700; }
 .cue .fill { color: var(--muted); }
 
 .say { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; background: var(--card);
@@ -147,3 +138,5 @@ svg { flex: none; }
 
 @media (min-width: 720px) { .scenes { grid-template-columns: 1fr 1fr; } .scene-card { grid-template-columns: 1fr; justify-items: center; text-align: center; } .scene-icon { grid-row: auto; } }
 @media (prefers-reduced-motion: no-preference) { .listen.playing { animation: pulse 0.9s ease-in-out infinite; } @keyframes pulse { 50% { transform: scale(1.08); } } }
+
+.missing:empty { display: none; }

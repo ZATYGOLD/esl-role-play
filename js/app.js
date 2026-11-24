@@ -38,20 +38,20 @@
     return v ? (blank.ideas || []).find((idea) => idea.en.toLowerCase() === v) : undefined;
   }
 
-  /** Budget scenes: total of the chosen priced ideas and what is left. Null until every priced blank is chosen. */
-  function budgetFor(scene, choices) {
-    if (!scene.budget) return null;
-    const priced = scene.blanks.filter((b) => b.ideas.some((i) => i.price != null));
-    const picks = priced.map((b) => ideaFor(b, choices[b.key]));
-    const spent = picks.reduce((sum, i) => sum + (i ? i.price : 0), 0);
+  /** Budget scenes: what one payer spends (their items + extra) and has left on their card. */
+  function payerTotals(scene, payer, choices) {
+    const picks = payer.blanks.map((key) => ideaFor(scene.blanks.find((b) => b.key === key), choices[key]));
+    const spent = picks.reduce((sum, i) => sum + (i ? i.price : 0), payer.extra || 0);
     return { spent, left: scene.budget - spent, complete: picks.every(Boolean) };
   }
 
-  /** The text for one placeholder ({A}, {A.where}, {TOTAL}, {LEFT}) in English or 中文, or "" if not chosen yet. */
+  /** The text for one placeholder ({A}, {A.ask}, {TOTAL1}, {LEFT1}) in English or 中文, or "" if not chosen yet. */
   function placeholderValue(scene, choices, key, field, lang) {
-    if (key === "TOTAL" || key === "LEFT") {
-      const budget = budgetFor(scene, choices);
-      return budget && budget.complete ? String(key === "TOTAL" ? budget.spent : budget.left) : "";
+    const money = /^(TOTAL|LEFT)(\d+)$/.exec(key);
+    if (money) {
+      const payer = (scene.payers || []).find((p) => p.id === money[2]);
+      const totals = payer && payerTotals(scene, payer, choices);
+      return totals && totals.complete ? String(money[1] === "TOTAL" ? totals.spent : totals.left) : "";
     }
     const blank = scene.blanks.find((b) => b.key === key);
     const value = (choices[key] || "").trim();
@@ -64,7 +64,7 @@
   /** Fills placeholders. mode: "html" (highlighted English), "zh" (highlighted 中文 hint), "speech" (plain). */
   function fill(scene, template, choices, mode = "html") {
     const source = mode === "speech" ? template : esc(template);
-    return source.replace(/\{([A-Z]+)(?:\.(\w+))?\}/g, (_, key, field) => {
+    return source.replace(/\{([A-Z]+\d*)(?:\.(\w+))?\}/g, (_, key, field) => {
       const value = placeholderValue(scene, choices, key, field, mode === "zh" ? "zh" : "en");
       if (mode === "speech") return value || "blank";
       if (!value) return `<span class="fill empty">(${key.length === 1 ? key : "?"}) ____</span>`;
@@ -253,7 +253,6 @@
         <span class="scene-icon">${ICON[scene.icon]}</span>
         <span class="word">${esc(scene.title)}</span>
         <span class="zh">${esc(scene.zh)}</span>
-        <span class="meta">4 roles · about ${TARGET_SECONDS} seconds${scene.budget ? ` · $${scene.budget} ${esc(scene.budgetLabel.en.toLowerCase())}` : ""}</span>
       </a>`;
   }
 
@@ -282,20 +281,12 @@
   }
 
   function budgetMeter(scene) {
-    const budget = budgetFor(scene, state.choices);
-    if (!budget) return "";
-    const over = budget.left < 0;
-    const pct = Math.min(100, (budget.spent / scene.budget) * 100);
-    return `
-      <div class="budget${over ? " over" : ""}">
-        <div class="budget-row">
-          <span>${esc(scene.budgetLabel.en)} <span class="zh">${esc(scene.budgetLabel.zh)}</span> <b>$${scene.budget}</b></span>
-          <span>Spent <span class="zh">花了</span> <b>$${budget.spent}</b></span>
-          <span>Left <span class="zh">剩下</span> <b>$${budget.left}</b></span>
-        </div>
-        <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
-        ${over ? `<p class="warn">Too much! Choose something cheaper. <span class="zh">超過預算了！</span></p>` : ""}
-      </div>`;
+    if (!scene.payers) return "";
+    const rows = scene.payers.map((payer) => {
+      const t = payerTotals(scene, payer, state.choices);
+      return `<div class="card-row${t.left < 0 ? " over" : ""}"><span>${esc(payer.name)} <span class="zh">${esc(payer.zh)}</span></span><span><b>$${t.left}</b> left <span class="zh">剩下</span></span></div>`;
+    });
+    return `<div class="budget"><div class="budget-title">$${scene.budget} gift card each <span class="zh">每人一張 $${scene.budget} 禮物卡</span></div>${rows.join("")}</div>`;
   }
 
   function choiceSummary(scene) {
@@ -306,26 +297,22 @@
 
   function missingNote(scene) {
     const missing = missingBlanks(scene, state.choices);
-    return missing.length
-      ? `Still empty: ${missing.map((b) => b.key).join(", ")} <span class="zh">還沒選</span>`
-      : `All words chosen! <span class="zh">詞都選好了！</span>`;
+    return missing.length ? `Still empty: ${missing.map((b) => b.key).join(", ")} <span class="zh">還沒選</span>` : "";
   }
 
   function roleButton(scene, role) {
-    const count = scene.lines.filter((l) => l.by.includes(role.id)).length;
     return `
       <button class="role" data-action="role" data-role="${role.id}">
         <span class="role-name">${esc(role.name)}</span>
         <span class="zh">${esc(role.zh)}</span>
-        <span class="meta">${count} lines</span>
       </button>`;
   }
 
   function myLineCard(scene, line, index) {
     const prev = scene.lines[index - 1];
     const cue = prev
-      ? `<span class="cue-label">When you hear <span class="zh">聽到</span></span><b>${esc(speakers(scene, prev))}:</b> “${fill(scene, prev.en, state.choices)}”`
-      : `<span class="cue-label">Start <span class="zh">開始</span></span>You speak first. <span class="zh">你先說。</span>`;
+      ? `<b>${esc(speakers(scene, prev))}:</b> “${fill(scene, prev.en, state.choices)}”`
+      : `<b>Start</b> <span class="zh">開始</span>`;
     return `
       <article class="line-card">
         <div class="cue">${cue}</div>
@@ -352,7 +339,6 @@
         <div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(heading)}">
           ${titleBlock(heading, zh, "h2")}
           ${qrSvg(url)}
-          <p class="hint">Scan with your phone camera. <span class="zh">用手機相機掃描。</span></p>
           <div class="sheet-actions">
             <button class="btn ghost" data-copy>Copy link <span class="zh">複製連結</span></button>
             <button class="btn" data-close>Close <span class="zh">關閉</span></button>
@@ -374,7 +360,6 @@
   function homeView() {
     return `
       <header class="top">${titleBlock("Role-Play Practice", "角色扮演練習")}</header>
-      <p class="lead">Choose your scene. <span class="zh">選擇你們的場景。</span></p>
       <div class="scenes">${Object.entries(SCENES).map(([id, s]) => sceneCard(id, s)).join("")}</div>
       <button class="btn ghost wide" data-action="class-qr">${ICON.qr} Show class QR code <span class="zh">顯示班級 QR code</span></button>`;
   }
@@ -393,23 +378,21 @@
     const complete = !missingBlanks(scene, state.choices).length;
     if (ui.editing === null) ui.editing = !complete;
     const words = ui.editing
-      ? `<p class="hint">One person chooses, then shares with the group. <span class="zh">一個人選，再分享給組員。</span></p>
-         ${budgetMeter(scene)}
+      ? `${budgetMeter(scene)}
          ${scene.blanks.map(blankPicker).join("")}`
-      : `<p class="hint">Your group's words: <span class="zh">你們組的詞：</span></p>
-         ${choiceSummary(scene)}
+      : `${choiceSummary(scene)}
          ${budgetMeter(scene)}
-         <button class="btn ghost" data-action="edit">Change words <span class="zh">修改</span></button>`;
+         <button class="btn ghost" data-action="edit">Change <span class="zh">修改</span></button>`;
     return `
       <div class="bar">${backButton("home", "Scenes", "場景")}</div>
       <header class="top">${titleBlock(scene.title, scene.zh)}</header>
       <section class="panel">
-        <h2><span class="step">1</span> Choose your words <span class="zh">選擇你們的詞</span></h2>
+        <h2><span class="step">1</span> Choose <span class="zh">選擇</span></h2>
         ${words}
-        <button class="btn" data-action="share">${ICON.qr} Share with group <span class="zh">分享給組員</span></button>
+        <button class="btn" data-action="share">${ICON.qr} Share <span class="zh">分享</span></button>
       </section>
       <section class="panel">
-        <h2><span class="step">2</span> Choose your role <span class="zh">選擇你的角色</span></h2>
+        <h2><span class="step">2</span> Your role <span class="zh">你的角色</span></h2>
         <p class="missing">${missingNote(scene)}</p>
         <div class="roles">${scene.roles.map((r) => roleButton(scene, r)).join("")}</div>
       </section>`;
@@ -433,7 +416,7 @@
         <button class="tab${mine ? "" : " on"}" role="tab" aria-selected="${!mine}" data-action="tab" data-tab="all">Whole scene <span class="zh">整個劇本</span></button>
       </div>
       ${body}
-      <p class="tip">Speak slowly and clearly. Look at your partner. <span class="zh">說慢一點、清楚一點，看著你的搭檔。</span></p>`;
+`;
   }
 
   function render() {
@@ -486,7 +469,7 @@
     },
     share: () => {
       const scene = SCENES[state.sceneId];
-      openQrModal(baseUrl() + hashFor(state, { share: true }), `${scene.title}: our words`, "掃描取得你們組的詞");
+      openQrModal(baseUrl() + hashFor(state, { share: true }), scene.title, "掃描加入");
     },
     role: (el) => commit({ role: el.dataset.role, tab: "mine" }, { push: true }),
     tab: (el) => commit({ tab: el.dataset.tab }),

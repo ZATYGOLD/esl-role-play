@@ -3,63 +3,68 @@
  *
  * Placeholders in a line:
  *   {A}        the group's choice for blank A
- *   {A.where}  a detail of the chosen idea (here: where it is in the store)
- *   {TOTAL}    sum of the chosen ideas' prices (scenes with a budget)
- *   {LEFT}     budget minus TOTAL
+ *   {A.ask}    a detail of the chosen idea (its 中文 version is `askZh`)
+ *   {TOTAL1}   payer 1's total: their chosen ideas' prices + extra (scenes with a budget)
+ *   {LEFT1}    budget minus TOTAL1
  *
- * Ideas: { en, zh, price?, where?, whereZh? }. A blank marked `fixed` must be picked from its ideas
+ * Ideas: { en, zh, price?, ...details }. A blank marked `fixed` must be picked from its ideas
  * (used for priced items so totals stay accurate). Otherwise groups may type their own; a typed choice
  * shows in English in the 中文 hint too.
  *
  * Store prices: 7-ELEVEN Taiwan list prices found online, Nov 2026. Stores and promotions vary.
  */
+const STORE_DRINKS = [
+  { en: "a bottle of tea", zh: "一瓶茶", price: 24 },
+  { en: "an americano", zh: "一杯美式咖啡", price: 35 },
+  { en: "a latte", zh: "一杯拿鐵", price: 45 },
+];
+
+const STORE_SNACKS = [
+  { en: "a tea egg", zh: "一顆茶葉蛋", price: 10, ask: "where are the tea eggs?", askZh: "茶葉蛋在哪裡？", answer: "They're next to the counter.", answerZh: "在櫃檯旁邊。" },
+  { en: "an ice cream", zh: "一杯冰淇淋", price: 25, ask: "where is the ice cream?", askZh: "冰淇淋在哪裡？", answer: "It's in the freezer.", answerZh: "在冷凍櫃裡。" },
+  { en: "a rice ball", zh: "一個飯糰", price: 30, ask: "where are the rice balls?", askZh: "飯糰在哪裡？", answer: "They're in the fridge over there.", answerZh: "在那邊的冰箱裡。" },
+  { en: "a bag of chips", zh: "一包洋芋片", price: 35, ask: "where are the chips?", askZh: "洋芋片在哪裡？", answer: "They're on the shelf by the door.", answerZh: "在門口旁邊的架子上。" },
+  { en: "a hot dog", zh: "一個大亨堡", price: 45, ask: "where are the hot dogs?", askZh: "大亨堡在哪裡？", answer: "They're at the counter.", answerZh: "在櫃檯那裡。" },
+];
+
 const SCENES = {
   store: {
     title: "At 7-Eleven",
     zh: "在 7-ELEVEN",
     icon: "store",
     budget: 100,
-    budgetLabel: { en: "Gift card", zh: "禮物卡" },
+    // Each customer pays separately with their own gift card. `extra` adds the NT$1 bag.
+    payers: [
+      { id: "1", name: "Customer 1", zh: "顧客 1", blanks: ["A", "B"], extra: 0 },
+      { id: "2", name: "Customer 2", zh: "顧客 2", blanks: ["C", "D"], extra: 1 },
+    ],
     roles: [
-      { id: "clerk", name: "Clerk", zh: "櫃檯店員" },
-      { id: "staff", name: "Staff", zh: "補貨店員" },
+      { id: "clerk", name: "Clerk", zh: "店員" },
+      { id: "staff", name: "Staff", zh: "店員 2" },
       { id: "c1", name: "Customer 1", zh: "顧客 1" },
       { id: "c2", name: "Customer 2", zh: "顧客 2" },
     ],
     blanks: [
-      {
-        key: "A", label: "Customer 1 wants", zh: "顧客 1 想要", fixed: true,
-        ideas: [
-          { en: "a bottle of tea", zh: "一瓶茶", price: 24 },
-          { en: "an ice cream cup", zh: "一杯冰淇淋", price: 25 },
-          { en: "a latte", zh: "一杯拿鐵", price: 45 },
-        ],
-      },
-      {
-        key: "B", label: "Customer 2 looks for", zh: "顧客 2 要找", fixed: true,
-        ideas: [
-          { en: "tea eggs", zh: "茶葉蛋", price: 10, where: "next to the counter", whereZh: "櫃檯旁邊" },
-          { en: "rice balls", zh: "飯糰", price: 30, where: "in the fridge over there", whereZh: "那邊的冰箱裡" },
-          { en: "chips", zh: "洋芋片", price: 35, where: "on the shelf by the door", whereZh: "門口旁邊的架子上" },
-          { en: "hot dogs", zh: "大亨堡", price: 45, where: "at the counter", whereZh: "櫃檯那裡" },
-        ],
-      },
+      { key: "A", label: "Customer 1 drink", zh: "顧客 1 飲料", fixed: true, ideas: STORE_DRINKS },
+      { key: "B", label: "Customer 1 snack", zh: "顧客 1 點心", fixed: true, ideas: STORE_SNACKS },
+      { key: "C", label: "Customer 2 drink", zh: "顧客 2 飲料", fixed: true, ideas: STORE_DRINKS },
+      { key: "D", label: "Customer 2 snack", zh: "顧客 2 點心", fixed: true, ideas: STORE_SNACKS },
     ],
     lines: [
       { by: ["clerk"], act: ["Customers walk in.", "顧客走進來。"], en: "Hi! Welcome!", zh: "你好！歡迎光臨！" },
-      { by: ["c2"], act: ["Hold up the gift card.", "拿出禮物卡。"], en: "We have one hundred dollars. What do you want?", zh: "我們有一百元。你想要什麼？" },
-      { by: ["c1"], en: "I want {A}. What about you?", zh: "我想要{A}。你呢？" },
-      { by: ["c2"], en: "Hmm… I want a snack.", zh: "嗯……我想要一個點心。" },
-      { by: ["staff"], en: "Hi! Can I help you?", zh: "你好！需要幫忙嗎？" },
-      { by: ["c2"], en: "Yes, please. Where are the {B}?", zh: "好，麻煩你。{B}在哪裡？" },
-      { by: ["staff"], act: ["Point.", "用手指。"], en: "They're {B.where}.", zh: "在{B.where}。" },
-      { by: ["c2"], en: "Thanks! I'll take one.", zh: "謝謝！我要一個。" },
-      { by: ["staff"], en: "Here you go. Enjoy!", zh: "給你。請慢用！" },
-      { by: ["clerk"], en: "Next, please! Is that everything?", zh: "下一位！這樣就好了嗎？" },
-      { by: ["c1"], en: "Yes. How much is it?", zh: "對。多少錢？" },
-      { by: ["clerk"], en: "That's {TOTAL} dollars. Do you need a bag? It's one dollar.", zh: "一共{TOTAL}元。需要袋子嗎？一個一元。" },
-      { by: ["c1"], en: "No, thanks. Can we use this gift card?", zh: "不用，謝謝。可以用這張禮物卡嗎？" },
-      { by: ["clerk"], act: ["Scan the card.", "刷卡。"], en: "Sure. You have {LEFT} dollars left. Have a nice day!", zh: "當然可以。卡裡還剩{LEFT}元。祝你有美好的一天！" },
+      { by: ["c1"], en: "I want {A} and {B}. What about you?", zh: "我想要{A}和{B}。你呢？" },
+      { by: ["c2"], en: "I want {C} and {D}. Excuse me, {D.ask}", zh: "我想要{C}和{D}。不好意思，{D.ask}" },
+      { by: ["staff"], act: ["Point.", "用手指。"], en: "{D.answer}", zh: "{D.answer}" },
+      { by: ["clerk"], en: "Next, please!", zh: "下一位！" },
+      { by: ["c1"], act: ["Put your items on the counter.", "把東西放在櫃檯上。"], en: "Just these, please.", zh: "就這些，謝謝。" },
+      { by: ["clerk"], en: "That's {TOTAL1} dollars. Do you need a bag?", zh: "一共{TOTAL1}元。需要袋子嗎？" },
+      { by: ["c1"], en: "No, thanks. Here's my gift card.", zh: "不用，謝謝。這是我的禮物卡。" },
+      { by: ["clerk"], act: ["Scan the card.", "刷卡。"], en: "OK! You have {LEFT1} dollars left.", zh: "好了！卡裡還剩{LEFT1}元。" },
+      { by: ["staff"], act: ["Open the second register.", "打開第二台收銀機。"], en: "I can help you over here!", zh: "這邊可以幫你結帳！" },
+      { by: ["c2"], en: "Thanks! Can I get a bag, too?", zh: "謝謝！我也可以要一個袋子嗎？" },
+      { by: ["staff"], en: "Sure. That's {TOTAL2} dollars with the bag.", zh: "可以。加袋子一共{TOTAL2}元。" },
+      { by: ["c2"], en: "Here's my gift card.", zh: "這是我的禮物卡。" },
+      { by: ["staff"], act: ["Scan the card.", "刷卡。"], en: "You have {LEFT2} dollars left. Have a nice day!", zh: "卡裡還剩{LEFT2}元。祝你有美好的一天！" },
       { by: ["c1", "c2"], act: ["Wave.", "揮手。"], en: "Thank you! Bye!", zh: "謝謝！再見！" },
     ],
   },
