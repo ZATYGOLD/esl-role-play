@@ -5,7 +5,7 @@ Phone-friendly ESL role-play scripts (A1–A2) for groups of 4: **At 7-Eleven** 
 ## How students use it
 
 1. Project the **class QR code** (home page → *Show class QR code*). Students scan it with their phone cameras.
-2. In each group, one student picks the scene and chooses the group's words, then taps **Share with group**. In the 7-Eleven scene each customer picks a drink and a snack with real prices; the app works out each total and what is left on each card.
+2. In each group, one student picks the scene and chooses the group's words, then taps **Share**. In the 7-Eleven scene each customer picks a drink and a food with real prices; the app works out each total and what is left on each card.
 3. The other three scan that phone's QR code, so the whole group gets the same words.
 4. Everyone picks a role. **My lines** shows each line with the cue to listen for. **Whole scene** has *Play scene* and a 50-second timer for rehearsing.
 
@@ -22,8 +22,8 @@ All scene text lives in `js/scenes.js`: roles, the blanks (with idea chips and C
 
 ## Prices (checked Nov 2026)
 
-7-Eleven Taiwan list prices found online; individual stores and promotions vary. Bottle of tea (600 ml) $24 · medium americano $35 · medium latte $45 · ice cream cup $25 · tea egg $10 · rice ball about $30 · small bag of chips $35 · hot dog in a bun $45 · plastic bag $1.
-Movie student tickets are typically $20 less than a full ticket ($320–370 in Taipei). The popcorn-and-drinks prices in the movie scene are classroom estimates.
+7-Eleven Taiwan prices found online; stores and promotions vary. Water (600 ml) $18 · tea (600 ml) $24 · tea egg $10 · banana $18 · ice cream cup $25 · rice ball about $30 · chips $35 · hot dog $45 · grapes $69 · plastic bag $1.
+Regular movie tickets are $320–370 in Taipei. Popcorn-and-drinks prices are classroom estimates.
 
 ## Files
 

@@ -14,17 +14,18 @@
  * Store prices: 7-ELEVEN Taiwan list prices found online, Nov 2026. Stores and promotions vary.
  */
 const STORE_DRINKS = [
+  { en: "a bottle of water", zh: "一瓶水", price: 18 },
   { en: "a bottle of tea", zh: "一瓶茶", price: 24 },
-  { en: "an americano", zh: "一杯美式咖啡", price: 35 },
-  { en: "a latte", zh: "一杯拿鐵", price: 45 },
 ];
 
 const STORE_SNACKS = [
   { en: "a tea egg", zh: "一顆茶葉蛋", price: 10, ask: "where are the tea eggs?", askZh: "茶葉蛋在哪裡？", answer: "They're next to the counter.", answerZh: "在櫃檯旁邊。" },
+  { en: "a banana", zh: "一根香蕉", price: 18, ask: "where are the bananas?", askZh: "香蕉在哪裡？", answer: "They're in the fruit fridge.", answerZh: "在水果冰櫃裡。" },
   { en: "an ice cream", zh: "一杯冰淇淋", price: 25, ask: "where is the ice cream?", askZh: "冰淇淋在哪裡？", answer: "It's in the freezer.", answerZh: "在冷凍櫃裡。" },
   { en: "a rice ball", zh: "一個飯糰", price: 30, ask: "where are the rice balls?", askZh: "飯糰在哪裡？", answer: "They're in the fridge over there.", answerZh: "在那邊的冰箱裡。" },
   { en: "a bag of chips", zh: "一包洋芋片", price: 35, ask: "where are the chips?", askZh: "洋芋片在哪裡？", answer: "They're on the shelf by the door.", answerZh: "在門口旁邊的架子上。" },
   { en: "a hot dog", zh: "一個大亨堡", price: 45, ask: "where are the hot dogs?", askZh: "大亨堡在哪裡？", answer: "They're at the counter.", answerZh: "在櫃檯那裡。" },
+  { en: "a bag of grapes", zh: "一袋葡萄", price: 69, ask: "where are the grapes?", askZh: "葡萄在哪裡？", answer: "They're in the fruit fridge.", answerZh: "在水果冰櫃裡。" },
 ];
 
 const SCENES = {
@@ -46,9 +47,9 @@ const SCENES = {
     ],
     blanks: [
       { key: "A", label: "Customer 1 drink", zh: "顧客 1 飲料", fixed: true, ideas: STORE_DRINKS },
-      { key: "B", label: "Customer 1 snack", zh: "顧客 1 點心", fixed: true, ideas: STORE_SNACKS },
+      { key: "B", label: "Customer 1 food", zh: "顧客 1 食物", fixed: true, ideas: STORE_SNACKS },
       { key: "C", label: "Customer 2 drink", zh: "顧客 2 飲料", fixed: true, ideas: STORE_DRINKS },
-      { key: "D", label: "Customer 2 snack", zh: "顧客 2 點心", fixed: true, ideas: STORE_SNACKS },
+      { key: "D", label: "Customer 2 food", zh: "顧客 2 食物", fixed: true, ideas: STORE_SNACKS },
     ],
     lines: [
       { by: ["clerk"], act: ["Customers walk in.", "顧客走進來。"], en: "Hi! Welcome!", zh: "你好！歡迎光臨！" },
@@ -90,8 +91,8 @@ const SCENES = {
         ideas: [{ en: "2:30", zh: "2:30" }, { en: "4:10", zh: "4:10" }, { en: "6:50", zh: "6:50" }],
       },
       {
-        key: "D", label: "Student ticket price", zh: "學生票價", number: true,
-        ideas: [{ en: "300", zh: "300" }, { en: "320", zh: "320" }, { en: "340", zh: "340" }],
+        key: "D", label: "Ticket price", zh: "票價", number: true,
+        ideas: [{ en: "320", zh: "320" }, { en: "340", zh: "340" }, { en: "360", zh: "360" }],
       },
       {
         key: "E", label: "Seat row", zh: "座位排",
@@ -118,11 +119,11 @@ const SCENES = {
       { by: ["c1"], act: ["Look at the movie posters.", "看電影海報。"], en: "What do you want to watch?", zh: "你想看什麼？" },
       { by: ["c2"], en: "How about {A}? It looks {B}!", zh: "看《{A}》怎麼樣？看起來很{B}！" },
       { by: ["ticket"], en: "Hi! How can I help you?", zh: "你好！有什麼可以幫你的嗎？" },
-      { by: ["c1"], en: "Two student tickets for {A}, please.", zh: "請給我兩張《{A}》的學生票。" },
+      { by: ["c1"], en: "Two tickets for {A}, please.", zh: "請給我兩張《{A}》的票。" },
       { by: ["ticket"], en: "Sure. Is the {C} show OK?", zh: "好的。{C}那場可以嗎？" },
       { by: ["c2"], en: "Yes! How much is it?", zh: "可以！多少錢？" },
-      { by: ["ticket"], en: "It's {D} dollars each. Can I see your student cards?", zh: "一張{D}元。可以看一下你們的學生證嗎？" },
-      { by: ["c1"], act: ["Show your student cards.", "拿出學生證。"], en: "Here you go.", zh: "在這裡。" },
+      { by: ["ticket"], en: "It's {D} dollars each.", zh: "一張{D}元。" },
+      { by: ["c1"], act: ["Pay.", "付錢。"], en: "OK. Here you go.", zh: "好，給你。" },
       { by: ["ticket"], act: ["Hand over the tickets.", "把票交給顧客。"], en: "Thanks! Your seats are in row {E}.", zh: "謝謝！你們的座位在 {E} 排。" },
       { by: ["snack"], en: "Hi! What would you like?", zh: "你好！你們想要什麼？" },
       { by: ["c2"], en: "One {F} popcorn and two {G}, please.", zh: "請給我一份{F}爆米花和兩杯{G}。" },
