@@ -29,7 +29,7 @@ Regular movie tickets are $320–370 in Taipei. Popcorn-and-drinks prices are cl
 
 ```
 index.html            page shell
-css/styles.css        styles (same palette as the Thanksgiving QR Trail)
+css/styles.css        styles (scripts shown as a chat, one color per role)
 js/scenes.js          scene data
 js/app.js             routing, views, speech, timer, QR sharing
 js/vendor/qrcode.js   QR encoder (Kazuhiko Arase, MIT)

@@ -242,11 +242,25 @@
   const listenButton = (index) =>
     `<button class="listen" data-action="listen" data-line="${index}" aria-label="Listen">${ICON.speak}</button>`;
 
-  const actNote = (line) =>
-    line.act ? `<div class="act">${esc(line.act[0])} <span class="zh">${esc(line.act[1])}</span></div>` : "";
+  const roleIndex = (scene, id) => scene.roles.findIndex((r) => r.id === id);
+  const roleColor = (index) => `--role: var(--r${index})`;
 
-  const lineText = (scene, line) =>
-    `<div class="en">${fill(scene, line.en, state.choices)}</div><div class="zh">${fill(scene, line.zh, state.choices, "zh")}</div>`;
+  const actNote = (line) =>
+    line.act ? `<p class="act">${esc(line.act[0])} <span class="zh">${esc(line.act[1])}</span></p>` : "";
+
+  /** One chat message. Your own lines sit on the right in your role's color; a cue shows only its English. */
+  function message(scene, line, index, { mine = false, cue = false } = {}) {
+    const color = roleColor(roleIndex(scene, mine ? state.role : line.by[0]));
+    const zh = cue ? "" : `<div class="zh">${fill(scene, line.zh, state.choices, "zh")}</div>`;
+    return `
+      <div class="msg${mine ? " me" : ""}${cue ? " cue" : ""}" style="${color}"${cue ? "" : ` data-row="${index}"`}>
+        <div class="bubble">
+          <span class="who">${mine ? "You" : esc(speakers(scene, line))}</span>
+          <div class="en">${fill(scene, line.en, state.choices)}</div>${zh}
+        </div>
+        ${cue ? "" : listenButton(index)}
+      </div>`;
+  }
 
   const backButton = (action, label, zh) =>
     `<button class="back" data-action="${action}">${ICON.back}<span>${label}</span><span class="zh">${zh}</span></button>`;
@@ -256,10 +270,9 @@
 
   function sceneCard(id, scene) {
     return `
-      <button class="scene-card" data-action="scene" data-value="${id}">
+      <button class="scene-card ${scene.icon}" data-action="scene" data-value="${id}">
+        <span class="scene-text"><span class="word">${esc(scene.title)}</span><span class="zh">${esc(scene.zh)}</span></span>
         <span class="scene-icon">${ICON[scene.icon]}</span>
-        <span class="word">${esc(scene.title)}</span>
-        <span class="zh">${esc(scene.zh)}</span>
       </button>`;
   }
 
@@ -289,11 +302,11 @@
 
   function budgetMeter(scene) {
     if (!scene.payers) return "";
-    const rows = scene.payers.map((payer) => {
+    const cards = scene.payers.map((payer) => {
       const t = payerTotals(scene, payer, state.choices);
-      return `<div class="card-row${t.left < 0 ? " over" : ""}"><span>${esc(payer.name)} <span class="zh">${esc(payer.zh)}</span></span><span><b>$${t.left}</b> left <span class="zh">剩下</span></span></div>`;
+      return `<div class="gift${t.left < 0 ? " over" : ""}"><span class="gift-name">${esc(payer.name)}</span><span class="gift-left">$${t.left}</span><span class="zh">剩下</span></div>`;
     });
-    return `<div class="budget"><div class="budget-title">$${scene.budget} gift card each <span class="zh">每人一張 $${scene.budget} 禮物卡</span></div>${rows.join("")}</div>`;
+    return `<div class="budget"><p class="budget-title">$${scene.budget} gift card each <span class="zh">每人一張 $${scene.budget} 禮物卡</span></p>${cards.join("")}</div>`;
   }
 
   function choiceSummary(scene) {
@@ -307,39 +320,23 @@
     return missing.length ? `Still empty: ${missing.map((b) => b.key).join(", ")} <span class="zh">還沒選</span>` : "";
   }
 
-  const pickButton = (action, value, name, zh) => `
-      <button class="pick" data-action="${action}" data-value="${esc(value)}">
+  const pickButton = (action, value, name, zh, colorIndex) => `
+      <button class="pick" data-action="${action}" data-value="${esc(value)}" style="${roleColor(colorIndex)}">
         <span class="pick-name">${esc(name)}</span>
         <span class="zh">${esc(zh)}</span>
       </button>`;
 
-  const groupBadge = () =>
-    state.group ? `<span class="badge">Group ${state.group} <span class="zh">第 ${state.group} 組</span></span>` : "";
+  const groupBadge = ({ compact = false } = {}) =>
+    state.group ? `<span class="badge">Group ${state.group}${compact ? "" : ` <span class="zh">第 ${state.group} 組</span>`}</span>` : "";
 
   function myLineCard(scene, line, index) {
     const prev = scene.lines[index - 1];
-    const cue = prev
-      ? `<b>${esc(speakers(scene, prev))}:</b> “${fill(scene, prev.en, state.choices)}”`
-      : `<b>Start</b> <span class="zh">開始</span>`;
-    return `
-      <article class="line-card">
-        <div class="cue">${cue}</div>
-        <div class="say mine" data-row="${index}">
-          <div class="line">${actNote(line)}${lineText(scene, line)}</div>
-          ${listenButton(index)}
-        </div>
-      </article>`;
+    const cue = prev ? message(scene, prev, index - 1, { cue: true }) : `<p class="act">Start <span class="zh">開始</span></p>`;
+    return `<article class="exchange">${cue}${actNote(line)}${message(scene, line, index, { mine: true })}</article>`;
   }
 
-  function sceneRow(scene, line, index) {
-    const mine = line.by.includes(state.role);
-    return `
-      <div class="say row${mine ? " mine" : ""}" data-row="${index}">
-        <span class="num">${index + 1}</span>
-        <div class="line"><div class="who">${esc(speakers(scene, line))}${mine ? ' <span class="you">YOU</span>' : ""}</div>${actNote(line)}${lineText(scene, line)}</div>
-        ${listenButton(index)}
-      </div>`;
-  }
+  const sceneRow = (scene, line, index) =>
+    `${actNote(line)}${message(scene, line, index, { mine: line.by.includes(state.role) })}`;
 
   function openQrModal(url, heading, zh) {
     modalRoot.innerHTML = `
@@ -368,10 +365,15 @@
   function homeView() {
     const groups = Array.from({ length: GROUP_COUNT }, (_, i) => i + 1);
     return `
-      <header class="top">${titleBlock("Role-Play Practice", "角色扮演練習")}</header>
+      <header class="hero">
+        <div class="hero-icons"><span>${ICON.store}</span><span>${ICON.movie}</span></div>
+        ${titleBlock("Role-Play Practice", "角色扮演練習")}
+      </header>
       <section class="panel">
         <h2>Your group <span class="zh">你的組別</span></h2>
-        <div class="picks">${groups.map((g) => pickButton("group", g, `Group ${g}`, `第 ${g} 組`)).join("")}</div>
+        <div class="groups">${groups
+          .map((g) => `<button class="group" data-action="group" data-value="${g}"><span class="group-num">${g}</span><span class="group-name">Group ${g}</span><span class="zh">第 ${g} 組</span></button>`)
+          .join("")}</div>
       </section>
       <button class="btn ghost wide" data-action="class-qr">${ICON.qr} QR code</button>`;
   }
@@ -414,7 +416,7 @@
       <section class="panel">
         <h2><span class="step">2</span> Your role <span class="zh">你的角色</span></h2>
         <p class="missing">${missingNote(scene)}</p>
-        <div class="picks">${scene.roles.map((r) => pickButton("role", r.id, r.name, r.zh)).join("")}</div>
+        <div class="picks">${scene.roles.map((r, i) => pickButton("role", r.id, r.name, r.zh, i)).join("")}</div>
       </section>`;
   }
 
@@ -422,14 +424,14 @@
     const role = roleById(scene, state.role);
     const mine = state.tab === "mine";
     const body = mine
-      ? scene.lines.map((l, i) => (l.by.includes(role.id) ? myLineCard(scene, l, i) : "")).join("")
+      ? `<div class="chat">${scene.lines.map((l, i) => (l.by.includes(role.id) ? myLineCard(scene, l, i) : "")).join("")}</div>`
       : `<div class="tools">
            <button class="btn" data-action="play-all"><span class="ico">${ICON.play}</span><span class="label">Play scene <span class="zh">播放</span></span></button>
            <button class="btn ghost timer" data-action="timer"><span class="time">0:00</span>&nbsp;/ ${clock(TARGET_SECONDS)}</button>
          </div>
-         <div class="script">${scene.lines.map((l, i) => sceneRow(scene, l, i)).join("")}</div>`;
+         <div class="chat">${scene.lines.map((l, i) => sceneRow(scene, l, i)).join("")}</div>`;
     return `
-      <div class="bar">${backButton("roles", "Roles", "角色")}<span class="badge">${state.group ? `G${state.group} · ` : ""}${esc(role.name)} <span class="zh">${esc(role.zh)}</span></span></div>
+      <div class="bar">${backButton("roles", "Roles", "角色")}<span class="badges">${groupBadge({ compact: true })}<span class="badge role" style="${roleColor(roleIndex(scene, role.id))}">${esc(role.name)}</span></span></div>
       <header class="top">${titleBlock(scene.title, scene.zh)}</header>
       <div class="tabs" role="tablist">
         <button class="tab${mine ? " on" : ""}" role="tab" aria-selected="${mine}" data-action="tab" data-tab="mine">My lines <span class="zh">我的台詞</span></button>
