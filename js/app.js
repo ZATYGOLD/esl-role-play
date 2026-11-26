@@ -42,7 +42,8 @@
   /** Budget scenes: what one payer spends (their items + extra) and has left on their card. */
   function payerTotals(scene, payer, choices) {
     const picks = payer.blanks.map((key) => ideaFor(scene.blanks.find((b) => b.key === key), choices[key]));
-    const spent = picks.reduce((sum, i) => sum + (i ? i.price : 0), payer.extra || 0);
+    const extra = picks.some(Boolean) ? payer.extra || 0 : 0;
+    const spent = picks.reduce((sum, i) => sum + (i ? i.price : 0), extra);
     return { spent, left: scene.budget - spent, complete: picks.every(Boolean) };
   }
 

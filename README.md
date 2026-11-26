@@ -22,7 +22,7 @@ All scene text lives in `js/scenes.js`: roles, the blanks (with idea chips and C
 
 ## Prices (checked Nov 2026)
 
-7-Eleven Taiwan prices found online; stores and promotions vary. Water (600 ml) $18 · tea (600 ml) $24 · tea egg $10 · banana $18 · ice cream cup $25 · rice ball about $30 · chips $35 · hot dog $45 · grapes $69 · plastic bag $1.
+7-Eleven Taiwan prices found online; stores and promotions vary. Water (600 ml) $18 · tea (600 ml) $24 · barley tea (600 ml) $29 · tea egg $10 · banana $18 · ice cream cup $25 · rice ball about $30 · chips $35 · hot dog $45 · grapes $69 · plastic bag $1.
 Regular movie tickets are $320–370 in Taipei. Popcorn-and-drinks prices are classroom estimates.
 
 ## Files

@@ -18,6 +18,7 @@
 const STORE_DRINKS = [
   { en: "a bottle of water", zh: "一瓶水", price: 18 },
   { en: "a bottle of tea", zh: "一瓶茶", price: 24 },
+  { en: "a bottle of barley tea", zh: "一瓶麥茶", price: 29 },
 ];
 
 const STORE_SNACKS = [
