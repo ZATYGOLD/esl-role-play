@@ -1,9 +1,10 @@
 /*
  * Role-play practice app. Routes (all in the URL hash, so a link or QR code restores the same view):
- *   #/                      home: choose a scene
- *   #/qr                    class QR code for the projector
- *   #/<scene>?A=..&B=..     choose words, then a role
- *   #/<scene>?..&role=c1    one student's lines (tab=all → whole scene)
+ *   #/                        home: choose a group
+ *   #/?g=2                    choose a scene
+ *   #/qr                      class QR code for the projector
+ *   #/<scene>?g=2&A=..&B=..   choose words, then a role
+ *   #/<scene>?..&role=c1      one student's lines (tab=all → whole scene)
  */
 (() => {
   "use strict";
@@ -11,6 +12,7 @@
   const app = document.getElementById("app");
   const modalRoot = document.getElementById("modal");
   const TARGET_SECONDS = 60;
+  const GROUP_COUNT = 4;
   const ROLE_PITCH = [1, 1.25, 0.85, 1.1, 0.95];
 
   const ICON = {
@@ -102,8 +104,10 @@
       });
     }
     const role = sceneId && roleById(SCENES[sceneId], params.get("role")) ? params.get("role") : null;
+    const g = Number(params.get("g"));
     return {
       view: path === "qr" ? "qr" : sceneId ? "scene" : "home",
+      group: Number.isInteger(g) && g >= 1 && g <= GROUP_COUNT ? g : null,
       sceneId,
       choices,
       role,
@@ -113,8 +117,9 @@
 
   function hashFor(s, { share = false } = {}) {
     if (s.view === "qr") return "#/qr";
-    if (!s.sceneId) return "#/";
     const params = new URLSearchParams();
+    if (s.group) params.set("g", s.group);
+    if (!s.sceneId) return s.group ? `#/?${params}` : "#/";
     SCENES[s.sceneId].blanks.forEach((b) => {
       const v = (s.choices[b.key] || "").trim();
       if (v) params.set(b.key, v);
@@ -251,11 +256,11 @@
 
   function sceneCard(id, scene) {
     return `
-      <a class="scene-card" href="#/${id}">
+      <button class="scene-card" data-action="scene" data-value="${id}">
         <span class="scene-icon">${ICON[scene.icon]}</span>
         <span class="word">${esc(scene.title)}</span>
         <span class="zh">${esc(scene.zh)}</span>
-      </a>`;
+      </button>`;
   }
 
   function chip(blank, idea, selected) {
@@ -302,13 +307,14 @@
     return missing.length ? `Still empty: ${missing.map((b) => b.key).join(", ")} <span class="zh">還沒選</span>` : "";
   }
 
-  function roleButton(scene, role) {
-    return `
-      <button class="role" data-action="role" data-role="${role.id}">
-        <span class="role-name">${esc(role.name)}</span>
-        <span class="zh">${esc(role.zh)}</span>
+  const pickButton = (action, value, name, zh) => `
+      <button class="pick" data-action="${action}" data-value="${esc(value)}">
+        <span class="pick-name">${esc(name)}</span>
+        <span class="zh">${esc(zh)}</span>
       </button>`;
-  }
+
+  const groupBadge = () =>
+    state.group ? `<span class="badge">Group ${state.group} <span class="zh">第 ${state.group} 組</span></span>` : "";
 
   function myLineCard(scene, line, index) {
     const prev = scene.lines[index - 1];
@@ -360,10 +366,21 @@
   // ---------- Views
 
   function homeView() {
+    const groups = Array.from({ length: GROUP_COUNT }, (_, i) => i + 1);
     return `
       <header class="top">${titleBlock("Role-Play Practice", "角色扮演練習")}</header>
-      <div class="scenes">${Object.entries(SCENES).map(([id, s]) => sceneCard(id, s)).join("")}</div>
+      <section class="panel">
+        <h2>Your group <span class="zh">你的組別</span></h2>
+        <div class="picks">${groups.map((g) => pickButton("group", g, `Group ${g}`, `第 ${g} 組`)).join("")}</div>
+      </section>
       <button class="btn ghost wide" data-action="class-qr">${ICON.qr} QR code</button>`;
+  }
+
+  function sceneListView() {
+    return `
+      <div class="bar">${backButton("groups", "Groups", "組別")}${groupBadge()}</div>
+      <header class="top">${titleBlock("Choose a scene", "選擇場景")}</header>
+      <div class="scenes">${Object.entries(SCENES).map(([id, s]) => sceneCard(id, s)).join("")}</div>`;
   }
 
   function classQrView() {
@@ -387,7 +404,7 @@
          ${budgetMeter(scene)}
          <button class="btn ghost" data-action="edit">Change <span class="zh">修改</span></button>`;
     return `
-      <div class="bar">${backButton("home", "Scenes", "場景")}</div>
+      <div class="bar">${backButton("scenes", "Scenes", "場景")}${groupBadge()}</div>
       <header class="top">${titleBlock(scene.title, scene.zh)}</header>
       <section class="panel">
         <h2><span class="step">1</span> Choose <span class="zh">選擇</span></h2>
@@ -397,7 +414,7 @@
       <section class="panel">
         <h2><span class="step">2</span> Your role <span class="zh">你的角色</span></h2>
         <p class="missing">${missingNote(scene)}</p>
-        <div class="roles">${scene.roles.map((r) => roleButton(scene, r)).join("")}</div>
+        <div class="picks">${scene.roles.map((r) => pickButton("role", r.id, r.name, r.zh)).join("")}</div>
       </section>`;
   }
 
@@ -412,7 +429,7 @@
          </div>
          <div class="script">${scene.lines.map((l, i) => sceneRow(scene, l, i)).join("")}</div>`;
     return `
-      <div class="bar">${backButton("roles", "Roles", "角色")}<span class="badge">${esc(role.name)} <span class="zh">${esc(role.zh)}</span></span></div>
+      <div class="bar">${backButton("roles", "Roles", "角色")}<span class="badge">${state.group ? `G${state.group} · ` : ""}${esc(role.name)} <span class="zh">${esc(role.zh)}</span></span></div>
       <header class="top">${titleBlock(scene.title, scene.zh)}</header>
       <div class="tabs" role="tablist">
         <button class="tab${mine ? " on" : ""}" role="tab" aria-selected="${mine}" data-action="tab" data-tab="mine">My lines <span class="zh">我的台詞</span></button>
@@ -428,7 +445,7 @@
     modalRoot.innerHTML = "";
     const scene = state.sceneId && SCENES[state.sceneId];
     if (state.view === "qr") app.innerHTML = classQrView();
-    else if (!scene) app.innerHTML = homeView();
+    else if (!scene) app.innerHTML = state.group ? sceneListView() : homeView();
     else app.innerHTML = state.role ? roleView(scene) : setupView(scene);
     document.title = scene ? `${scene.title} · Role-Play Practice` : "Role-Play Practice";
     window.scrollTo(0, 0);
@@ -457,8 +474,15 @@
   // ---------- Events
 
   const actions = {
-    home: () => commit({ view: "home", sceneId: null, choices: {}, role: null }, { push: true }),
-    "class-qr": () => commit({ view: "qr", sceneId: null }, { push: true }),
+    home: () => commit({ view: "home", group: null, sceneId: null, choices: {}, role: null }, { push: true }),
+    groups: () => commit({ view: "home", group: null, sceneId: null, choices: {}, role: null }, { push: true }),
+    scenes: () => commit({ view: "home", sceneId: null, choices: {}, role: null }, { push: true }),
+    group: (el) => commit({ view: "home", group: Number(el.dataset.value) }, { push: true }),
+    scene: (el) => {
+      ui.editing = null;
+      commit({ view: "scene", sceneId: el.dataset.value, choices: {}, role: null, tab: "mine" }, { push: true });
+    },
+    "class-qr": () => commit({ view: "qr", group: null, sceneId: null }, { push: true }),
     roles: () => commit({ role: null, tab: "mine" }, { push: true }),
     edit: () => {
       ui.editing = true;
@@ -482,7 +506,7 @@
       });
       commit({ choices });
     },
-    role: (el) => commit({ role: el.dataset.role, tab: "mine" }, { push: true }),
+    role: (el) => commit({ role: el.dataset.value, tab: "mine" }, { push: true }),
     tab: (el) => commit({ tab: el.dataset.tab }),
     listen: (el) => {
       const scene = SCENES[state.sceneId];

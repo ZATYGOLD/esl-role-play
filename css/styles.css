@@ -55,7 +55,7 @@ svg { flex: none; }
 
 /* Home */
 .scenes { display: grid; gap: 14px; }
-.scene-card { background: var(--card); border: 3px solid var(--line); border-radius: var(--radius); padding: 18px; color: var(--ink); text-decoration: none;
+.scene-card { font: inherit; text-align: left; width: 100%; cursor: pointer; background: var(--card); border: 3px solid var(--line); border-radius: var(--radius); padding: 18px; color: var(--ink); text-decoration: none;
   display: grid; grid-template-columns: 76px minmax(0, 1fr); column-gap: 14px; align-items: center; }
 .scene-card:active { border-color: var(--orange); }
 .scene-icon { grid-row: span 2; width: 76px; height: 76px; color: var(--ink); }
@@ -86,10 +86,10 @@ svg { flex: none; }
 .pill b { color: var(--rust); margin-right: 4px; }
 
 /* Roles */
-.roles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-.role:last-child:nth-child(odd) { grid-column: 1 / -1; }
-.role { background: var(--washGreen); border: 3px solid var(--green); border-radius: 18px; padding: 14px 10px; display: grid; justify-items: center; gap: 2px; text-align: center; }
-.role-name { font-weight: 700; font-size: 1.15rem; }
+.picks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.pick { background: var(--washGreen); border: 3px solid var(--green); border-radius: 18px; padding: 14px 10px; display: grid; justify-items: center; gap: 2px; text-align: center; }
+.pick:last-child:nth-child(odd) { grid-column: 1 / -1; }
+.pick-name { font-weight: 700; font-size: 1.15rem; }
 
 /* Lines */
 .tabs { display: grid; grid-template-columns: 1fr 1fr; background: var(--card); border: 2px solid var(--line); border-radius: 999px; padding: 4px; }
