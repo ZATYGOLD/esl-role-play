@@ -1,13 +1,13 @@
 # Role-Play Practice
 
-Phone-friendly ESL role-play scripts (A1–A2) for groups of 4: **At 7-Eleven** (each customer pays with their own NT$100 gift card) and **At the Movie Theater**. Each scene is about 50 seconds, and every student speaks.
+Phone-friendly ESL role-play scripts (A1–A2) for groups of 5: **At 7-Eleven** (each customer pays with their own NT$100 gift card) and **At the Movie Theater**. Each scene is about 60 seconds, and every student speaks.
 
 ## How students use it
 
 1. Project the **class QR code** (home page → *Show class QR code*). Students scan it with their phone cameras.
-2. In each group, one student picks the scene and chooses the group's words, then taps **Share**. In the 7-Eleven scene each customer picks a drink and a food with real prices; the app works out each total and what is left on each card.
+2. In each group, one student picks the scene and chooses the group's words, then taps **Share** (or **Random** to choose instantly). In the 7-Eleven scene each customer picks a drink and a food with real prices; the app works out each total and what is left on each card.
 3. The other three scan that phone's QR code, so the whole group gets the same words.
-4. Everyone picks a role. **My lines** shows each line with the cue to listen for. **Whole scene** has *Play scene* and a 50-second timer for rehearsing.
+4. Everyone picks a role. **My lines** shows each line with the cue to listen for. **Whole scene** has *Play scene* and a 1-minute timer for rehearsing.
 
 ## Put it on GitHub Pages
 

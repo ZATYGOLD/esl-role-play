@@ -87,6 +87,7 @@ svg { flex: none; }
 
 /* Roles */
 .roles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.role:last-child:nth-child(odd) { grid-column: 1 / -1; }
 .role { background: var(--washGreen); border: 3px solid var(--green); border-radius: 18px; padding: 14px 10px; display: grid; justify-items: center; gap: 2px; text-align: center; }
 .role-name { font-weight: 700; font-size: 1.15rem; }
 

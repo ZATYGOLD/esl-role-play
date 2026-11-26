@@ -10,8 +10,8 @@
 
   const app = document.getElementById("app");
   const modalRoot = document.getElementById("modal");
-  const TARGET_SECONDS = 50;
-  const ROLE_PITCH = [1, 1.25, 0.85, 1.1];
+  const TARGET_SECONDS = 60;
+  const ROLE_PITCH = [1, 1.25, 0.85, 1.1, 0.95];
 
   const ICON = {
     speak: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 4V5L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4zM14 3.2v2.1a7 7 0 0 1 0 13.4v2.1a9 9 0 0 0 0-17.6z"/></svg>',
@@ -29,7 +29,8 @@
     String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
   const baseUrl = () => location.href.split("#")[0];
   const roleById = (scene, id) => scene.roles.find((r) => r.id === id);
-  const speakers = (scene, line) => line.by.map((id) => roleById(scene, id).name).join(" & ");
+  const speakers = (scene, line) => line.who || line.by.map((id) => roleById(scene, id).name).join(" & ");
+  const clock = (seconds) => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
   const linePitch = (scene, line) => ROLE_PITCH[scene.roles.findIndex((r) => r.id === line.by[0])] || 1;
   const missingBlanks = (scene, choices) => scene.blanks.filter((b) => !(choices[b.key] || "").trim());
 
@@ -222,7 +223,7 @@
       btn.classList.remove("over");
       const tick = () => {
         const s = Math.floor((Date.now() - this.startedAt) / 1000);
-        out.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+        out.textContent = clock(s);
         btn.classList.toggle("over", s > TARGET_SECONDS);
       };
       tick();
@@ -378,7 +379,8 @@
     const complete = !missingBlanks(scene, state.choices).length;
     if (ui.editing === null) ui.editing = !complete;
     const words = ui.editing
-      ? `${budgetMeter(scene)}
+      ? `<button class="btn ghost wide" data-action="random">Random <span class="zh">隨機</span></button>
+         ${budgetMeter(scene)}
          ${scene.blanks.map(blankPicker).join("")}`
       : `${choiceSummary(scene)}
          ${budgetMeter(scene)}
@@ -405,7 +407,7 @@
       ? scene.lines.map((l, i) => (l.by.includes(role.id) ? myLineCard(scene, l, i) : "")).join("")
       : `<div class="tools">
            <button class="btn" data-action="play-all"><span class="ico">${ICON.play}</span><span class="label">Play scene <span class="zh">播放</span></span></button>
-           <button class="btn ghost timer" data-action="timer"><span class="time">0:00</span>&nbsp;/ 0:${TARGET_SECONDS}</button>
+           <button class="btn ghost timer" data-action="timer"><span class="time">0:00</span>&nbsp;/ ${clock(TARGET_SECONDS)}</button>
          </div>
          <div class="script">${scene.lines.map((l, i) => sceneRow(scene, l, i)).join("")}</div>`;
     return `
@@ -470,6 +472,14 @@
     share: () => {
       const scene = SCENES[state.sceneId];
       openQrModal(baseUrl() + hashFor(state, { share: true }), scene.title, "掃描加入");
+    },
+    random: () => {
+      const scene = SCENES[state.sceneId];
+      const choices = { ...state.choices };
+      scene.blanks.forEach((b) => {
+        if (b.ideas.length) choices[b.key] = b.ideas[Math.floor(Math.random() * b.ideas.length)].en;
+      });
+      commit({ choices });
     },
     role: (el) => commit({ role: el.dataset.role, tab: "mine" }, { push: true }),
     tab: (el) => commit({ tab: el.dataset.tab }),
