@@ -13,7 +13,9 @@
   const modalRoot = document.getElementById("modal");
   const TARGET_SECONDS = 60;
   const GROUP_COUNT = 4;
-  const ROLE_PITCH = [1, 1.25, 0.85, 1.1, 0.95];
+  const ROLE_PITCH = [1, 1.2, 0.85, 1.1, 0.95];
+  const ACCENT_ORDER = ["en-US", "en-GB", "en-AU", "en-IE", "en-CA", "en-ZA", "en-IN", "en-NZ"];
+  const NOVELTY_VOICES = /albert|bad news|bahh|bells|boing|bubbles|cellos|good news|jester|organ|superstar|trinoids|whisper|wobble|zarvox|junior|ralph|fred|kathy|grandma|grandpa|eddy|flo|reed|rocko|sandy|shelley/i;
 
   const ICON = {
     speak: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 4V5L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4zM14 3.2v2.1a7 7 0 0 1 0 13.4v2.1a9 9 0 0 0 0-17.6z"/></svg>',
@@ -33,7 +35,7 @@
   const roleById = (scene, id) => scene.roles.find((r) => r.id === id);
   const speakers = (scene, line) => line.who || line.by.map((id) => roleById(scene, id).name).join(" & ");
   const clock = (seconds) => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
-  const linePitch = (scene, line) => ROLE_PITCH[scene.roles.findIndex((r) => r.id === line.by[0])] || 1;
+  const lineVoice = (scene, line) => Math.max(0, scene.roles.findIndex((r) => r.id === line.by[0]));
   const missingBlanks = (scene, choices) => scene.blanks.filter((b) => !(choices[b.key] || "").trim());
 
   function ideaFor(blank, value) {
@@ -153,25 +155,32 @@
 
   // ---------- Speech
 
+  /** Text-to-speech with a different English voice (and pitch) for each role, from the voices on the device. */
   const speech = {
-    voice: null,
+    voices: [],
     supported: "speechSynthesis" in window,
     init() {
       if (!this.supported) return;
-      const pick = () => {
-        const voices = speechSynthesis.getVoices();
-        this.voice = voices.find((v) => v.lang === "en-US") || voices.find((v) => v.lang.startsWith("en")) || null;
+      const load = () => {
+        const english = speechSynthesis.getVoices().filter((v) => /^en[-_]/i.test(v.lang));
+        const usable = english.filter((v) => !NOVELTY_VOICES.test(v.name));
+        const rank = (v) => {
+          const i = ACCENT_ORDER.indexOf(v.lang.replace("_", "-"));
+          return (i < 0 ? ACCENT_ORDER.length : i) * 2 + (v.localService ? 0 : 1);
+        };
+        this.voices = (usable.length ? usable : english).sort((a, b) => rank(a) - rank(b));
       };
-      pick();
-      speechSynthesis.addEventListener("voiceschanged", pick);
+      load();
+      speechSynthesis.addEventListener("voiceschanged", load);
     },
-    say(text, pitch, onend) {
+    say(text, roleIndex, onend) {
       if (!this.supported) return onend();
       const u = new SpeechSynthesisUtterance(text);
-      u.lang = "en-US";
+      const voice = this.voices.length ? this.voices[roleIndex % this.voices.length] : null;
+      u.lang = voice ? voice.lang : "en-US";
+      if (voice) u.voice = voice;
       u.rate = 0.85;
-      u.pitch = pitch;
-      if (this.voice) u.voice = this.voice;
+      u.pitch = ROLE_PITCH[roleIndex % ROLE_PITCH.length];
       u.onend = u.onerror = onend;
       speechSynthesis.speak(u);
     },
@@ -180,7 +189,7 @@
     },
   };
 
-  /** Plays a queue of { text, pitch, el }; the element being read gets .playing. */
+  /** Plays a queue of { text, voice, el }; the element being read gets .playing. */
   const player = {
     token: 0,
     clear() {
@@ -204,7 +213,7 @@
           item.el.classList.add("playing");
           item.el.scrollIntoView({ block: "nearest", behavior: "smooth" });
         }
-        speech.say(item.text, item.pitch, next);
+        speech.say(item.text, item.voice, next);
       };
       next();
     },
@@ -514,7 +523,7 @@
       const scene = SCENES[state.sceneId];
       const line = scene.lines[Number(el.dataset.line)];
       if (el.classList.contains("playing")) return player.stop();
-      player.play([{ text: fill(scene, line.en, state.choices, "speech"), pitch: linePitch(scene, line), el }]);
+      player.play([{ text: fill(scene, line.en, state.choices, "speech"), voice: lineVoice(scene, line), el }]);
     },
     "play-all": (el) => {
       const scene = SCENES[state.sceneId];
@@ -533,7 +542,7 @@
       label.innerHTML = 'Stop <span class="zh">停止</span>';
       const items = scene.lines.map((line, i) => ({
         text: fill(scene, line.en, state.choices, "speech"),
-        pitch: linePitch(scene, line),
+        voice: lineVoice(scene, line),
         el: app.querySelector(`[data-row="${i}"]`),
       }));
       player.play(items, reset);
